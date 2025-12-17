@@ -39,3 +39,28 @@
 
 # debug information files
 *.dwo
+
+# vscode files
+.vscode/
+
+# macos files
+.DS_Store
+
+# windows files
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+#python files
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.pyw
+*.pyz
+*.pywz
+*.pyzw
+*.pyzwz
+*.pyzwzw
+.venv/
+venv
