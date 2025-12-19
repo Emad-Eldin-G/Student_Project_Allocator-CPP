@@ -34,6 +34,7 @@ void Allocator::readStaff(const string& filename) {
     file.close();
 }
 
+
 void Allocator::readProjects(const string& filename) {
     ifstream file(filename);
     if (!file.is_open()) {
@@ -65,6 +66,7 @@ void Allocator::readProjects(const string& filename) {
     file.close();
 }
 
+
 void Allocator::readStudents(const string& filename) {
     ifstream file(filename);
     if (!file.is_open()) {
@@ -86,7 +88,7 @@ void Allocator::readStudents(const string& filename) {
         string pref_str;
         int count = 0;
         while (ss >> pref_str && count < 4) {
-            s.preferences.push_back(stoi(pref_str));
+            s.preferences.push_back(stoi(pref_str)); // use stoi to convert string to int
             count++;
         }
         
@@ -95,10 +97,12 @@ void Allocator::readStudents(const string& filename) {
     file.close();
 }
 
+
 void Allocator::allocate() {
     allocateProjects();
     assignSupervisors();
 }
+
 
 void Allocator::allocateProjects() {
     // Step 1: Allocate students to their most preferred available project
@@ -117,6 +121,7 @@ void Allocator::allocateProjects() {
         // Unallocated student remains unallocated, will be assigned in step 2
     }
 }
+
 
 void Allocator::assignStaffToProject(const string& staff_id, Staff& staff_member, int proj_id, Project& proj) {
     // Count unassigned students in this project
@@ -160,6 +165,7 @@ void Allocator::assignStaffToProject(const string& staff_id, Staff& staff_member
     }
 }
 
+
 void Allocator::assignSupervisors() {
     // Step 2.1: Assign staff to their own proposed projects
     for (auto& [staff_id, staff_member] : staff) {
@@ -196,6 +202,7 @@ void Allocator::assignSupervisors() {
         }
     }
 }
+
 
 int Allocator::computeScore() const {
     int total_score = 0;
@@ -243,6 +250,7 @@ int Allocator::computeScore() const {
     
     return total_score;
 }
+
 
 void Allocator::writeOutput(const string& filename) const {
     ofstream file(filename);
