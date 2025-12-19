@@ -11,8 +11,8 @@ using namespace std;
 struct Staff {
     string id;
     int load_limit;
-    int current_load = 0;
-    unordered_set<string> expertise;
+    int current_load = 0; // current load of the staff (number of projects allocated to the staff)
+    unordered_set<string> expertise; // using unordered_set to store expertise areas (order not important)
 };
 
 struct Project {
@@ -25,9 +25,9 @@ struct Project {
 
 struct Student {
     string id;
-    vector<int> preferences;
-    int allocated_project = -1;
-    string allocated_supervisor = "";
+    vector<int> preferences; // using vector to maintain order of preferences
+    int allocated_project = -1; // -1 means not allocated
+    string allocated_supervisor = ""; // empty string means not allocated
 };
 
 class Allocator {
@@ -36,7 +36,7 @@ public:
     void readProjects(const string& filename);
     void readStudents(const string& filename);
 
-    void allocate();       // runs all phases
+    void allocate();
     int computeScore() const;
     void writeOutput(const string& filename) const;
 
@@ -45,8 +45,9 @@ private:
     map<int, Project> projects;
     map<string, Student> students;
 
-    void phase1_allocateProjects();
-    void phase2_assignSupervisors();
+    // two step approach
+    void allocateProjects();
+    void assignSupervisors();
 };
 
 #endif

@@ -64,3 +64,23 @@ __pycache__/
 *.pyzwzw
 .venv/
 venv
+
+# test txt files
+staff.txt
+projects.txt
+students.txt
+output.txt
+
+# compiled files
+GenAlloc
+Alloc.o
+info.plist
+GenAlloc.dSYM/
+GenAlloc.app/
+GenAlloc.app.dSYM/
+GenAlloc.app.dSYM/Contents/Info.plist
+GenAlloc.app.dSYM/Contents/Resources/
+GenAlloc.app.dSYM/Contents/Resources/Relocations/
+GenAlloc.app.dSYM/Contents/Resources/Relocations/aarch64/
+GenAlloc.app.dSYM/Contents/Resources/Relocations/aarch64/GenAlloc.yml
+GenAlloc.app.dSYM/Contents/Resources/Relocations/aarch64/GenAlloc.yml
