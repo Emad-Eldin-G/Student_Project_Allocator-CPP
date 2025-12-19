@@ -8,7 +8,7 @@ A C++ program that allocates students to projects and assigns supervisors based 
 make
 ```
 
-This creates the executable `GenAlloc`.
+This creates the executable `GenAlloc`
 
 ## Run
 
