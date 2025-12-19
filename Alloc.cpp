@@ -3,6 +3,7 @@
 #include <fstream>
 #include <sstream>
 #include <iostream>
+#include <algorithm>
 
 using namespace std;
 
@@ -29,7 +30,7 @@ void Allocator::readStaff(const string& filename) {
             s.expertise.insert(exp);
         }
         
-        staff[id] = s;
+        staff_[id] = s;
     }
     file.close();
 }
@@ -61,7 +62,7 @@ void Allocator::readProjects(const string& filename) {
         p.current_count = 0;
         p.subject = subject;
         
-        projects[p.id] = p;
+        projects_[p.id] = p;
     }
     file.close();
 }
@@ -88,11 +89,11 @@ void Allocator::readStudents(const string& filename) {
         string pref_str;
         int count = 0;
         while (ss >> pref_str && count < 4) {
-            s.preferences.push_back(stoi(pref_str)); // use stoi to convert string to int
+            s.preferences.push_back(stoi(pref_str));
             count++;
         }
         
-        students[id] = s;
+        students_[id] = s;
     }
     file.close();
 }
@@ -106,15 +107,15 @@ void Allocator::allocate() {
 
 void Allocator::allocateProjects() {
     // Step 1: Allocate students to their most preferred available project
-    for (auto& [student_id, student] : students) {
+    for (auto& [student_id, student] : students_) {
         // Try each preference in order
         for (int pref : student.preferences) {
-            if (projects.find(pref) != projects.end()) {
-                Project& proj = projects[pref];
+            if (projects_.find(pref) != projects_.end()) {
+                Project& proj = projects_[pref];
                 if (proj.current_count < proj.multiplicity) {
                     student.allocated_project = pref;
                     proj.current_count++;
-                    break; // Student is allocated, move to next student
+                    break;
                 }
             }
         }
@@ -126,7 +127,7 @@ void Allocator::allocateProjects() {
 void Allocator::assignStaffToProject(const string& staff_id, Staff& staff_member, int proj_id, Project& proj) {
     // Count unassigned students in this project
     int unassigned = 0;
-    for (auto& [student_id, student] : students) {
+    for (auto& [student_id, student] : students_) {
         if (student.allocated_project == proj_id && student.allocated_supervisor.empty()) {
             unassigned++;
         }
@@ -134,7 +135,7 @@ void Allocator::assignStaffToProject(const string& staff_id, Staff& staff_member
     
     // Count unallocated students that could join this project
     int unallocated_students = 0;
-    for (auto& [student_id, student] : students) {
+    for (auto& [student_id, student] : students_) {
         if (student.allocated_project == -1 && proj.current_count < proj.multiplicity) {
             unallocated_students++;
         }
@@ -142,8 +143,9 @@ void Allocator::assignStaffToProject(const string& staff_id, Staff& staff_member
     
     // Assign supervisor to existing students in this project
     int to_assign = min(unassigned, staff_member.load_limit - staff_member.current_load);
-    for (auto& [student_id, student] : students) {
+    for (auto& [student_id, student] : students_) {
         if (to_assign <= 0) break;
+
         if (student.allocated_project == proj_id && student.allocated_supervisor.empty()) {
             student.allocated_supervisor = staff_id;
             staff_member.current_load++;
@@ -153,8 +155,9 @@ void Allocator::assignStaffToProject(const string& staff_id, Staff& staff_member
     
     // Assign unallocated students to this project
     to_assign = min(unallocated_students, staff_member.load_limit - staff_member.current_load);
-    for (auto& [student_id, student] : students) {
+    for (auto& [student_id, student] : students_) {
         if (to_assign <= 0) break;
+
         if (student.allocated_project == -1 && proj.current_count < proj.multiplicity) {
             student.allocated_project = proj_id;
             student.allocated_supervisor = staff_id;
@@ -168,9 +171,10 @@ void Allocator::assignStaffToProject(const string& staff_id, Staff& staff_member
 
 void Allocator::assignSupervisors() {
     // Step 2.1: Assign staff to their own proposed projects
-    for (auto& [staff_id, staff_member] : staff) {
-        for (auto& [proj_id, proj] : projects) {
+    for (auto& [staff_id, staff_member] : staff_) {
+        for (auto& [proj_id, proj] : projects_) {
             if (staff_member.current_load >= staff_member.load_limit) break;
+
             if (proj.staff_proposer_id == staff_id) {
                 assignStaffToProject(staff_id, staff_member, proj_id, proj);
             }
@@ -178,12 +182,14 @@ void Allocator::assignSupervisors() {
     }
     
     // Step 2.2: Assign staff to projects in their expertise areas
-    for (auto& [staff_id, staff_member] : staff) {
+    for (auto& [staff_id, staff_member] : staff_) {
         if (staff_member.current_load >= staff_member.load_limit) continue;
         
-        for (auto& [proj_id, proj] : projects) {
+        for (auto& [proj_id, proj] : projects_) {
             if (staff_member.current_load >= staff_member.load_limit) break;
+
             if (proj.staff_proposer_id == staff_id) continue; // Skip own projects
+
             if (staff_member.expertise.find(proj.subject) != staff_member.expertise.end()) {
                 assignStaffToProject(staff_id, staff_member, proj_id, proj);
             }
@@ -191,13 +197,16 @@ void Allocator::assignSupervisors() {
     }
     
     // Step 2.3: Assign staff to any remaining projects
-    for (auto& [staff_id, staff_member] : staff) {
+    for (auto& [staff_id, staff_member] : staff_) {
         if (staff_member.current_load >= staff_member.load_limit) continue;
         
-        for (auto& [proj_id, proj] : projects) {
+        for (auto& [proj_id, proj] : projects_) {
             if (staff_member.current_load >= staff_member.load_limit) break;
+
             if (proj.staff_proposer_id == staff_id) continue; // Skip own projects
+
             if (staff_member.expertise.find(proj.subject) != staff_member.expertise.end()) continue; // Skip expertise projects
+
             assignStaffToProject(staff_id, staff_member, proj_id, proj);
         }
     }
@@ -208,9 +217,8 @@ int Allocator::computeScore() const {
     int total_score = 0;
     
     // Calculate student scores
-    for (const auto& [student_id, student] : students) {
+    for (const auto& [student_id, student] : students_) {
         if (student.allocated_project == -1) {
-            // Not allocated, score = 0
             continue;
         }
         
@@ -231,17 +239,15 @@ int Allocator::computeScore() const {
     }
     
     // Calculate supervisor scores
-    for (const auto& [staff_id, staff_member] : staff) {
+    for (const auto& [staff_id, staff_member] : staff_) {
         // Find all students supervised by this staff member
-        for (const auto& [student_id, student] : students) {
+        for (const auto& [student_id, student] : students_) {
             if (student.allocated_supervisor == staff_id && student.allocated_project != -1) {
-                const Project& proj = projects.at(student.allocated_project);
+                const Project& proj = projects_.at(student.allocated_project);
                 
                 if (proj.staff_proposer_id == staff_id) {
-                    // Own proposal
                     total_score += 4;
                 } else if (staff_member.expertise.find(proj.subject) != staff_member.expertise.end()) {
-                    // In expertise area, but not their own proposal
                     total_score += 2;
                 }
             }
@@ -261,19 +267,18 @@ void Allocator::writeOutput(const string& filename) const {
     
     // Sort student IDs by alphanumeric order
     vector<string> sorted_student_ids;
-    for (const auto& [student_id, student] : students) {
+    for (const auto& [student_id, student] : students_) {
         sorted_student_ids.push_back(student_id);
     }
     sort(sorted_student_ids.begin(), sorted_student_ids.end());
     
     // Format allocation line for each student
     for (const string& student_id : sorted_student_ids) {
-        const Student& student = students.at(student_id);
+        const Student& student = students_.at(student_id);
         file << student_id << " ";
         if (student.allocated_project != -1) {
             file << student.allocated_project << " " << student.allocated_supervisor;
         } else {
-            // Should not happen if algorithm works correctly, but handle it
             file << "-1 -1";
         }
         file << "\n";
