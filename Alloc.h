@@ -48,6 +48,9 @@ private:
     // two step approach
     void allocateProjects();
     void assignSupervisors();
+    
+    // Helper function to assign staff to a project
+    void assignStaffToProject(const string& staff_id, Staff& staff_member, int proj_id, Project& proj);
 };
 
 #endif

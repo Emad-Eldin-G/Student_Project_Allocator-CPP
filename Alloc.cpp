@@ -118,53 +118,55 @@ void Allocator::allocateProjects() {
     }
 }
 
+void Allocator::assignStaffToProject(const string& staff_id, Staff& staff_member, int proj_id, Project& proj) {
+    // Count unassigned students in this project
+    int unassigned = 0;
+    for (auto& [student_id, student] : students) {
+        if (student.allocated_project == proj_id && student.allocated_supervisor.empty()) {
+            unassigned++;
+        }
+    }
+    
+    // Count unallocated students that could join this project
+    int unallocated_students = 0;
+    for (auto& [student_id, student] : students) {
+        if (student.allocated_project == -1 && proj.current_count < proj.multiplicity) {
+            unallocated_students++;
+        }
+    }
+    
+    // Assign supervisor to existing students in this project
+    int to_assign = min(unassigned, staff_member.load_limit - staff_member.current_load);
+    for (auto& [student_id, student] : students) {
+        if (to_assign <= 0) break;
+        if (student.allocated_project == proj_id && student.allocated_supervisor.empty()) {
+            student.allocated_supervisor = staff_id;
+            staff_member.current_load++;
+            to_assign--;
+        }
+    }
+    
+    // Assign unallocated students to this project
+    to_assign = min(unallocated_students, staff_member.load_limit - staff_member.current_load);
+    for (auto& [student_id, student] : students) {
+        if (to_assign <= 0) break;
+        if (student.allocated_project == -1 && proj.current_count < proj.multiplicity) {
+            student.allocated_project = proj_id;
+            student.allocated_supervisor = staff_id;
+            proj.current_count++;
+            staff_member.current_load++;
+            to_assign--;
+        }
+    }
+}
+
 void Allocator::assignSupervisors() {
     // Step 2.1: Assign staff to their own proposed projects
     for (auto& [staff_id, staff_member] : staff) {
-        // Find projects proposed by this staff member
         for (auto& [proj_id, proj] : projects) {
             if (staff_member.current_load >= staff_member.load_limit) break;
-            
             if (proj.staff_proposer_id == staff_id) {
-                // Count unassigned students in this project
-                int unassigned = 0;
-                for (auto& [student_id, student] : students) {
-                    if (student.allocated_project == proj_id && student.allocated_supervisor.empty()) {
-                        unassigned++;
-                    }
-                }
-                
-                // Count unallocated students in this project
-                int unallocated_students = 0;
-                for (auto& [student_id, student] : students) {
-                    if (student.allocated_project == -1 && proj.current_count < proj.multiplicity) {
-                        unallocated_students++;
-                    }
-                }
-                
-                // Assign supervisor to existing students in this project
-                int to_assign = min(unassigned, staff_member.load_limit - staff_member.current_load);
-                for (auto& [student_id, student] : students) {
-                    if (to_assign <= 0) break;
-                    if (student.allocated_project == proj_id && student.allocated_supervisor.empty()) {
-                        student.allocated_supervisor = staff_id;
-                        staff_member.current_load++;
-                        to_assign--;
-                    }
-                }
-                
-                // Assign unallocated students to this project (from step 1)
-                to_assign = min(unallocated_students, staff_member.load_limit - staff_member.current_load);
-                for (auto& [student_id, student] : students) {
-                    if (to_assign <= 0) break;
-                    if (student.allocated_project == -1 && proj.current_count < proj.multiplicity) {
-                        student.allocated_project = proj_id;
-                        student.allocated_supervisor = staff_id;
-                        proj.current_count++;
-                        staff_member.current_load++;
-                        to_assign--;
-                    }
-                }
+                assignStaffToProject(staff_id, staff_member, proj_id, proj);
             }
         }
     }
@@ -173,54 +175,11 @@ void Allocator::assignSupervisors() {
     for (auto& [staff_id, staff_member] : staff) {
         if (staff_member.current_load >= staff_member.load_limit) continue;
         
-        // Find projects in staff's expertise areas (but not their own proposals)
         for (auto& [proj_id, proj] : projects) {
             if (staff_member.current_load >= staff_member.load_limit) break;
-            if (proj.staff_proposer_id == staff_id) {
-                continue; // Skip own projects (already handled)
-            }
-            
-            // Check if project is in staff's expertise
+            if (proj.staff_proposer_id == staff_id) continue; // Skip own projects
             if (staff_member.expertise.find(proj.subject) != staff_member.expertise.end()) {
-                // Count unassigned students in this project
-                int unassigned = 0;
-                for (auto& [student_id, student] : students) {
-                    if (student.allocated_project == proj_id && student.allocated_supervisor.empty()) {
-                        unassigned++;
-                    }
-                }
-                
-                // Count unallocated students in this project
-                int unallocated_students = 0;
-                for (auto& [student_id, student] : students) {
-                    if (student.allocated_project == -1 && proj.current_count < proj.multiplicity) {
-                        unallocated_students++;
-                    }
-                }
-                
-                // Assign supervisor to existing students in this project
-                int to_assign = min(unassigned, staff_member.load_limit - staff_member.current_load);
-                for (auto& [student_id, student] : students) {
-                    if (to_assign <= 0) break;
-                    if (student.allocated_project == proj_id && student.allocated_supervisor.empty()) {
-                        student.allocated_supervisor = staff_id;
-                        staff_member.current_load++;
-                        to_assign--;
-                    }
-                }
-                
-                // Assign unallocated students to this project (from step 1)
-                to_assign = min(unallocated_students, staff_member.load_limit - staff_member.current_load);
-                for (auto& [student_id, student] : students) {
-                    if (to_assign <= 0) break;
-                    if (student.allocated_project == -1 && proj.current_count < proj.multiplicity) {
-                        student.allocated_project = proj_id;
-                        student.allocated_supervisor = staff_id;
-                        proj.current_count++;
-                        staff_member.current_load++;
-                        to_assign--;
-                    }
-                }
+                assignStaffToProject(staff_id, staff_member, proj_id, proj);
             }
         }
     }
@@ -229,51 +188,11 @@ void Allocator::assignSupervisors() {
     for (auto& [staff_id, staff_member] : staff) {
         if (staff_member.current_load >= staff_member.load_limit) continue;
         
-        // Find any projects (not their own, not in expertise)
         for (auto& [proj_id, proj] : projects) {
             if (staff_member.current_load >= staff_member.load_limit) break;
             if (proj.staff_proposer_id == staff_id) continue; // Skip own projects
             if (staff_member.expertise.find(proj.subject) != staff_member.expertise.end()) continue; // Skip expertise projects
-            
-            // Count unassigned students in this project
-            int unassigned = 0;
-            for (auto& [student_id, student] : students) {
-                if (student.allocated_project == proj_id && student.allocated_supervisor.empty()) {
-                    unassigned++;
-                }
-            }
-            
-            // Count unallocated students in this project
-            int unallocated_students = 0;
-            for (auto& [student_id, student] : students) {
-                if (student.allocated_project == -1 && proj.current_count < proj.multiplicity) {
-                    unallocated_students++;
-                }
-            }
-            
-            // Count students to assign to this project
-            int to_assign = min(unassigned, staff_member.load_limit - staff_member.current_load);
-            for (auto& [student_id, student] : students) {
-                if (to_assign <= 0) break;
-                if (student.allocated_project == proj_id && student.allocated_supervisor.empty()) {
-                    student.allocated_supervisor = staff_id;
-                    staff_member.current_load++;
-                    to_assign--;
-                }
-            }
-            
-            // Assign unallocated students to this project (from step 1)
-            to_assign = min(unallocated_students, staff_member.load_limit - staff_member.current_load);
-            for (auto& [student_id, student] : students) {
-                if (to_assign <= 0) break;
-                if (student.allocated_project == -1 && proj.current_count < proj.multiplicity) {
-                    student.allocated_project = proj_id;
-                    student.allocated_supervisor = staff_id;
-                    proj.current_count++;
-                    staff_member.current_load++;
-                    to_assign--;
-                }
-            }
+            assignStaffToProject(staff_id, staff_member, proj_id, proj);
         }
     }
 }
