@@ -354,7 +354,7 @@ void Allocator::writeOutput(const string& filename) const {
     
     // Add score to the end of the file
     int score = computeScore();
-    file << score << "\n";
+    file << score;
     
     file.close();
 }
