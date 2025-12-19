@@ -65,12 +65,6 @@ __pycache__/
 .venv/
 venv
 
-# test txt files
-staff.txt
-projects.txt
-students.txt
-output.txt
-
 # compiled files
 GenAlloc
 Alloc.o
