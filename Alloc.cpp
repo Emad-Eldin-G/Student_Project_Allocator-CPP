@@ -13,13 +13,13 @@ void Allocator::readStaff(const string& filename) {
         cerr << "Error: Cannot open file " << filename << endl;
         return;
     }
-    
+
     string line;
     while (getline(file, line)) {
         stringstream ss(line);
         string id, load_limit_str;
         ss >> id >> load_limit_str;
-        
+
         Staff s;
         s.id = id;
         s.load_limit = stoi(load_limit_str);
@@ -29,7 +29,7 @@ void Allocator::readStaff(const string& filename) {
         while (ss >> exp) {
             s.expertise.insert(exp);
         }
-        
+
         staff_[id] = s;
     }
     file.close();
@@ -42,26 +42,26 @@ void Allocator::readProjects(const string& filename) {
         cerr << "Error: Cannot open file " << filename << endl;
         return;
     }
-    
+
     string line;
     while (getline(file, line)) {
         stringstream ss(line);
         string id_str, staff_proposer_id, multiplicity_str, subject, title;
         ss >> id_str >> staff_proposer_id >> multiplicity_str >> subject;
-        
+
         // Get full title from the rest of the line
         getline(ss, title);
         if (!title.empty()) {
             title.erase(0, title.find_first_not_of(" \t"));
         }
-        
+
         Project p;
         p.id = stoi(id_str);
         p.staff_proposer_id = staff_proposer_id;
         p.multiplicity = stoi(multiplicity_str);
         p.current_count = 0;
         p.subject = subject;
-        
+
         projects_[p.id] = p;
     }
     file.close();
@@ -74,25 +74,25 @@ void Allocator::readStudents(const string& filename) {
         cerr << "Error: Cannot open file " << filename << endl;
         return;
     }
-    
+
     string line;
     while (getline(file, line)) {
         stringstream ss(line);
         string id;
         ss >> id;
-        
+
         Student s;
         s.id = id;
         s.allocated_project = -1;
         s.allocated_supervisor = "";
-        
+
         string pref_str;
         int count = 0;
         while (ss >> pref_str && count < 4) {
             s.preferences.push_back(stoi(pref_str));
             count++;
         }
-        
+
         students_[id] = s;
     }
     file.close();
@@ -132,7 +132,7 @@ void Allocator::assignStaffToProject(const string& staff_id, Staff& staff_member
             unassigned++;
         }
     }
-    
+
     // Count unallocated students that could join this project
     int unallocated_students = 0;
     for (auto& [student_id, student] : students_) {
@@ -140,7 +140,7 @@ void Allocator::assignStaffToProject(const string& staff_id, Staff& staff_member
             unallocated_students++;
         }
     }
-    
+
     // Assign supervisor to existing students in this project
     int to_assign = min(unassigned, staff_member.load_limit - staff_member.current_load);
     for (auto& [student_id, student] : students_) {
@@ -152,7 +152,7 @@ void Allocator::assignStaffToProject(const string& staff_id, Staff& staff_member
             to_assign--;
         }
     }
-    
+
     // Assign unallocated students to this project
     to_assign = min(unallocated_students, staff_member.load_limit - staff_member.current_load);
     for (auto& [student_id, student] : students_) {
@@ -180,11 +180,11 @@ void Allocator::assignSupervisors() {
             }
         }
     }
-    
+
     // Step 2.2: Assign staff to projects in their expertise areas
     for (auto& [staff_id, staff_member] : staff_) {
         if (staff_member.current_load >= staff_member.load_limit) continue;
-        
+
         for (auto& [proj_id, proj] : projects_) {
             if (staff_member.current_load >= staff_member.load_limit) break;
 
@@ -195,11 +195,11 @@ void Allocator::assignSupervisors() {
             }
         }
     }
-    
+
     // Step 2.3: Assign staff to any remaining projects
     for (auto& [staff_id, staff_member] : staff_) {
         if (staff_member.current_load >= staff_member.load_limit) continue;
-        
+
         for (auto& [proj_id, proj] : projects_) {
             if (staff_member.current_load >= staff_member.load_limit) break;
 
@@ -215,13 +215,13 @@ void Allocator::assignSupervisors() {
 
 int Allocator::computeScore() const {
     int total_score = 0;
-    
+
     // Calculate student scores
     for (const auto& [student_id, student] : students_) {
         if (student.allocated_project == -1) {
             continue;
         }
-        
+
         // Find the rank of the allocated project in student's preferences
         int rank = -1;
         for (size_t i = 0; i < student.preferences.size(); i++) {
@@ -231,13 +231,13 @@ int Allocator::computeScore() const {
                 break;
             }
         }
-        
-        if (rank == 0) total_score += 4;      // Choice #1
-        else if (rank == 1) total_score += 3; // Choice #2
-        else if (rank == 2) total_score += 2; // Choice #3
-        else if (rank == 3) total_score += 1; // Choice #4
+
+        if (rank == 0) total_score += 4;
+        else if (rank == 1) total_score += 3;
+        else if (rank == 2) total_score += 2;
+        else if (rank == 3) total_score += 1;
     }
-    
+
     // Calculate supervisor scores
     for (const auto& [staff_id, staff_member] : staff_) {
         // Find all students supervised by this staff member
@@ -253,7 +253,7 @@ int Allocator::computeScore() const {
             }
         }
     }
-    
+
     return total_score;
 }
 
@@ -264,14 +264,14 @@ void Allocator::writeOutput(const string& filename) const {
         cerr << "Error: Cannot open file " << filename << " for writing" << endl;
         return;
     }
-    
+
     // Sort student IDs by alphanumeric order
     vector<string> sorted_student_ids;
     for (const auto& [student_id, student] : students_) {
         sorted_student_ids.push_back(student_id);
     }
     sort(sorted_student_ids.begin(), sorted_student_ids.end());
-    
+
     // Format allocation line for each student
     for (const string& student_id : sorted_student_ids) {
         const Student& student = students_.at(student_id);
@@ -283,10 +283,10 @@ void Allocator::writeOutput(const string& filename) const {
         }
         file << "\n";
     }
-    
+
     // Add score to the end of the file
     int score = computeScore();
     file << score;
-    
+
     file.close();
 }
